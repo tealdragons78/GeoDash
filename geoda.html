@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Neon Dash — 50 Levels Fast Blue Edition</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blue1:#00ccff;
+      --blue2:#3399ff;
+      --blue3:#66ffff;
+      --blue4:#99ccff;
+      --bg:#000814;
+      --card:rgba(10,20,40,0.7);
+    }
+    * { box-sizing:border-box }
+    body { margin:0; font-family:'Orbitron',sans-serif; background:var(--bg); color:#fff; transition:background 0.6s; }
+    header { position:sticky; top:0; background:#001122; padding:14px 56px; text-align:center; z-index:10; }
+    header h1 { margin:0; letter-spacing:2px; text-shadow:0 0 12px var(--blue1),0 0 18px var(--blue2); }
+    .bar { width:100%; height:20px; background:#222; border-radius:12px; overflow:hidden; margin-top:10px; }
+    .fill { height:100%; width:0%; background:linear-gradient(90deg,var(--blue1),var(--blue2),var(--blue3)); transition:width 0.4s; }
+    .tabs { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; padding:12px; }
+    .tab { padding:8px 12px; border:1px solid var(--blue1); cursor:pointer; user-select:none; transition:all .2s; }
+    .tab.active { background:var(--blue1); color:#000; font-weight:800; box-shadow:0 0 12px var(--blue1); }
+    section { display:none; padding:16px; animation:fade .3s ease; }
+    section.active { display:block; }
+    @keyframes fade { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; }
+    .card { background:var(--card); border:1px solid rgba(0,200,255,0.35); border-radius:12px; padding:10px; text-align:center;
+      backdrop-filter:blur(8px); transition:transform .2s, box-shadow .2s; }
+    .card:hover { transform:translateY(-4px); box-shadow:0 0 20px var(--blue1),0 0 30px var(--blue2); }
+    .neon-btn { width:100%; margin-top:8px; padding:10px; border:none; border-radius:12px;
+      background:linear-gradient(270deg,var(--blue1),var(--blue2)); color:#001b1b; font-weight:800; cursor:pointer;
+      box-shadow:0 0 12px var(--blue1),0 0 16px var(--blue2); transition:filter .2s; }
+    .neon-btn:hover { filter:brightness(1.2); }
+    .row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+    #gameCanvas { background:#000; display:block; margin:12px auto; border:3px solid var(--blue1);
+      box-shadow:0 0 20px var(--blue1),0 0 40px var(--blue2); }
+    #score { text-align:center; margin-top:6px; text-shadow:0 0 10px var(--blue1),0 0 18px var(--blue2); }
+    .sub { font-size:0.85rem; opacity:0.85; }
+    .small { padding:8px 10px; border-radius:10px; border:none;
+      background:linear-gradient(90deg,var(--blue3),var(--blue4)); color:#001b1b; font-weight:800; cursor:pointer;
+      box-shadow:0 0 12px var(--blue3),0 0 16px var(--blue4); }
+
+    /* Neon rainbow Back button (top-left, shiny with shimmer animation) */
+    .back-global {
+      position:fixed; top:12px; left:12px; z-index:9999;
+      padding:10px 16px; border:none; border-radius:14px; font-weight:800; cursor:pointer;
+      color:#111; text-transform:uppercase; letter-spacing:1px;
+      background:conic-gradient(from 0deg, #ff006e, #fb5607, #ffbe0b, #00f5d4, #00ccff, #7b2cbf, #ff006e);
+      box-shadow:
+        0 0 14px rgba(255,190,11,0.9),
+        0 0 24px rgba(0,204,255,0.8),
+        0 0 36px rgba(123,44,191,0.7),
+        inset 0 0 10px rgba(255,255,255,0.3);
+      overflow:hidden;
+    }
+    .back-global::before {
+      content:'';
+      position:absolute; top:0; left:-40%;
+      width:40%; height:100%;
+      background:linear-gradient(90deg, rgba(255,255,255,0.0), rgba(255,255,255,0.6), rgba(255,255,255,0.0));
+      transform:skewX(-20deg);
+      animation:shine 2.2s infinite;
+    }
+    @keyframes shine {
+      0% { left:-40%; }
+      50% { left:110%; }
+      100% { left:110%; }
+    }
+    .back-global:hover { filter:brightness(1.15); }
+  </style>
+</head>
+<body>
+  <!-- Neon rainbow Back button linking to NeonUI -->
+  <a id="backBtn" class="back-global" href="https://tealdragons78.github.io/NeonUI/" target="_blank" rel="noopener">Back</a>
+
+  <header>
+    <h1>Neon Dash</h1>
+    <div class="bar"><div id="completionFill" class="fill"></div></div>
+    <div id="overallText" class="sub">Overall completion: 0%</div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-target="skins">Skins</div>
+    <div class="tab" data-target="levels">Levels</div>
+    <div class="tab" data-target="play">Play</div>
+    <div class="tab" data-target="settings">Settings</div>
+  </div>
+
+  <section id="skins" class="active"><h2>Choose your skin</h2><div id="skinsGrid" class="grid"></div></section>
+  <section id="levels"><h2>Select a level</h2><div id="levelsGrid" class="grid"></div></section>
+  <section id="play">
+    <h2>Gameplay</h2>
+    <div class="row"><button class="small" id="retryBtn">Retry</button><button class="small" id="exitBtn">Exit</button></div>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas" width="900" height="340"></canvas>
+    <div class="sub">Controls: Space / Click / Tap to jump</div>
+  </section>
+  <section id="settings">
+    <h2>Settings</h2>
+    <div class="grid">
+      <div class="card"><div><strong>Difficulty</strong></div><input id="difficultyRange" type="range" min="1" max="10" value="5" style="width:100%;"></div>
+      <div class="card"><div><strong>Visual effects</strong></div><select id="effectsSelect" style="width:100%;"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option><option value="off">Off</option></select></div>
+      <div class="card"><div><strong>Progress</strong></div><button id="resetProgressBtn" class="neon-btn">Reset progress</button></div>
+    </div>
+  </section>
+
+<script>
+  // Tabs
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.target).classList.add('active');
+    });
+  });
+
+  // Skins: 50 skins (full rainbow wheel)
+  const SKINS = Array.from({length:50},(_,i)=>`hsl(${(i*360/50)},100%,50%)`);
+  const skinsGrid=document.getElementById('skinsGrid');
+  const equippedSkin={color:SKINS[0]};
+  function renderSkins(){
+    skinsGrid.innerHTML='';
+    SKINS.forEach((color,idx)=>{
+      const div=document.createElement('div');
+      div.className='card';
+      div.innerHTML=`<div style="width:100%;height:80px;border-radius:10px;background:${color};box-shadow:0 0 12px ${color};"></div>
+        <div class="sub">Skin ${idx+1}</div>
+        <button class="neon-btn">${equippedSkin.color===color?'Equipped':'Equip'}</button>`;
+      div.querySelector('button').addEventListener('click',()=>{equippedSkin.color=color;renderSkins();});
+      skinsGrid.appendChild(div);
+    });
+  }
+  renderSkins();
+
+  // Levels
+  const LEVELS_TOTAL=50; 
+  const levelsGrid=document.getElementById('levelsGrid'); 
+  const levelProgress={};
+  function renderLevels(){
+    levelsGrid.innerHTML='';
+    for(let i=1;i<=LEVELS_TOTAL;i++){
+      const prog=levelProgress[i]||0;
+      const diff=['Easy','Medium','Hard','Insane'][i%4];
+      const div=document.createElement('div');
+      div.className='card';
+      div.innerHTML=`<div><strong>Level ${i}</strong></div>
+        <div class="sub">Difficulty: ${diff}</div>
+        <div class="sub">Best: ${prog}%</div>
+        <button class="neon-btn">Play</button>`;
+      div.querySelector('button').addEventListener('click',()=>startGame(i));
+      levelsGrid.appendChild(div);
+    }
+  }
+  renderLevels();
+
+  // Completion bar
+  function updateOverall(){
+    let sum=0;
+    for(let i=1;i<=LEVELS_TOTAL;i++) sum+=(levelProgress[i]||0);
+    const overall=Math.round(sum/LEVELS_TOTAL);
+    document.getElementById('completionFill').style.width=overall+'%';
+    document.getElementById('overallText').textContent='Overall completion: '+overall+'%';
+  }
+  updateOverall();
+
+  // Settings
+  const difficultyRange=document.getElementById('difficultyRange');
+  const effectsSelect=document.getElementById('effectsSelect');
+  document.getElementById('resetProgressBtn').addEventListener('click',()=>{
+    if(!confirm('Reset all progress?')) return;
+    for(let i=1;i<=LEVELS_TOTAL;i++) levelProgress[i]=0;
+    renderLevels(); updateOverall();
+  });
+
+  // Game engine
+  const canvas=document.getElementById('gameCanvas');
+  const ctx=canvas.getContext('2d');
+  const scoreEl=document.getElementById('score');
+  const retryBtn=document.getElementById('retryBtn');
+  const exitBtn=document.getElementById('exitBtn');
+
+  // Physics: gravity 10 (as requested), longer jumps retained
+  const GRAVITY=10;
+  const JUMP=-12.5*7; // strong jump to counter higher gravity
+  const GROUND=270;
+
+  let cube,obstacles,frame,gameOver,currentLevel,scrollSpeed,pattern,endFrame,trail,loopHandle=null;
+
+  // Handcrafted 50 levels
+  const levelConfigs = {
+    1:{pattern:[120,240,360,480],endFrame:700,speed:6},
+    2:{pattern:[100,110,250,260,400,410],endFrame:650,speed:6},
+    3:{pattern:[150,300,450,600],endFrame:800,speed:7},
+    4:{pattern:[80,160,240,320,400,480],endFrame:700,speed:7},
+    5:{pattern:[200,205,210,400,405,410,600],endFrame:850,speed:7},
+    6:{pattern:[120,180,240,360,500,640],endFrame:900,speed:8},
+    7:{pattern:[100,220,225,230,400,520,525,530],endFrame:950,speed:8},
+    8:{pattern:[150,155,160,300,450,600,750],endFrame:1000,speed:8},
+    9:{pattern:[200,210,220,400,600,800],endFrame:1100,speed:9},
+    10:{pattern:[90,180,270,360,450,540,630],endFrame:950,speed:9},
+    11:{pattern:[100,105,110,300,305,310,500,505,510],endFrame:1000,speed:9},
+    12:{pattern:[150,300,450,600,750,900],endFrame:1200,speed:10},
+    13:{pattern:[200,220,240,400,420,440,600,620,640],endFrame:1100,speed:10},
+    14:{pattern:[100,250,400,550,700,850],endFrame:1150,speed:10},
+    15:{pattern:[120,125,130,250,255,260,380,385,390,600],endFrame:1200,speed:11},
+    16:{pattern:[180,360,540,720,900],endFrame:1300,speed:11},
+    17:{pattern:[100,200,210,220,400,500,510,520,700],endFrame:1250,speed:11},
+    18:{pattern:[150,300,450,600,750,900,1050],endFrame:1400,speed:12},
+    19:{pattern:[200,205,210,215,400,405,410,415,600,605,610,615],endFrame:1350,speed:12},
+    20:{pattern:[120,240,360,480,600,720,840,960],endFrame:1500,speed:12},
+    21:{pattern:[100,300,500,700,900],endFrame:1200,speed:13},
+    22:{pattern:[150,160,170,400,410,420,650,660,670],endFrame:1300,speed:13},
+    23:{pattern:[200,400,600,800,1000],endFrame:1400,speed:13},
+    24:{pattern:[120,125,130,250,255,260,500,505,510,750],endFrame:1450,speed:14},
+    25:{pattern:[180,360,540,720,900,1080],endFrame:1500,speed:14},
+    26:{pattern:[100,200,300,400,500,600,700],endFrame:1300,speed:14},
+    27:{pattern:[150,155,160,450,455,460,750,755,760],endFrame:1500,speed:15},
+    28:{pattern:[200,220,240,440,460,480,680,700,720],endFrame:1600,speed:15},
+    29:{pattern:[120,240,360,480,600,720,840,960,1080],endFrame:1700,speed:15},
+    30:{pattern:[100,105,110,300,305,310,600,605,610,900],endFrame:1800,speed:16},
+    31:{pattern:[150,300,450,600,750,900,1050,1200],endFrame:1900,speed:16},
+    32:{pattern:[200,205,210,215,400,405,410,415,800,805,810,815],endFrame:2000,speed:16},
+    33:{pattern:[120,180,240,360,480,600,720,840,960],endFrame:1900,speed:17},
+    34:{pattern:[100,220,225,230,440,660,880,1100],endFrame:2000,speed:17},
+    35:{pattern:[150,155,160,310,315,320,470,475,480,640,645,650],endFrame:2100,speed:17},
+    36:{pattern:[200,400,600,800,1000,1200],endFrame:2200,speed:18},
+    37:{pattern:[120,125,130,250,255,260,500,505,510,750,755,760,1000],endFrame:2300,speed:18},
+    38:{pattern:[180,360,540,720,900,1080,1260],endFrame:2400,speed:18},
+    39:{pattern:[100,200,210,220,400,500,510,520,700,800,810,820],endFrame:2300,speed:19},
+    40:{pattern:[150,300,450,600,750,900,1050,1200,1350],endFrame:2500,speed:19},
+    41:{pattern:[200,205,210,215,400,405,410,415,600,605,610,615,800,805,810,815],endFrame:2600,speed:19},
+    42:{pattern:[120,240,360,480,600,720,840,960,1080,1200],endFrame:2700,speed:20},
+    43:{pattern:[100,110,120,400,410,420,800,810,820,1200],endFrame:2800,speed:20},
+    44:{pattern:[150,155,160,450,455,460,750,755,760,1050,1055,1060],endFrame:2900,speed:20},
+    45:{pattern:[200,220,240,440,460,480,680,700,720,960,980,1000],endFrame:3000,speed:21},
+    46:{pattern:[120,180,240,360,480,600,720,840,960,1080,1200],endFrame:3100,speed:21},
+    47:{pattern:[100,200,300,400,500,600,700,800,900,1000],endFrame:3200,speed:21},
+    48:{pattern:[150,300,450,600,750,900,1050,1200,1350,1500],endFrame:3300,speed:22},
+    49:{pattern:[200,205,210,215,400,405,410,415,600,605,610,615,800,805,810,815,1000],endFrame:3400,speed:22},
+    50:{pattern:[120,240,360,480,600,720,840,960,1080,1200,1320,1440],endFrame:3500,speed:22}
+  };
+
+  // Level background themes (rotate across a palette)
+  const levelThemesBase = ["#000814","#001d3d","#003566","#001f54","#002855","#003049","#14213d","#1d3557","#0a9396","#005f73"];
+  const getLevelTheme = (levelIndex)=> levelIndex<=0 ? "#000814" : levelThemesBase[(levelIndex-1)%levelThemesBase.length];
+
+  function resetGame(){
+    cube={x:110,y:GROUND,size:40,vy:0,jumping:false};
+    obstacles=[]; trail=[]; frame=0; gameOver=false;
+  }
+
+  function startGame(levelId){
+    currentLevel=levelId;
+    const cfg=levelConfigs[levelId];
+    pattern=cfg.pattern; endFrame=cfg.endFrame;
+    scrollSpeed=(cfg.speed+Math.floor(+difficultyRange.value/3))*5; // faster world
+    resetGame();
+    scoreEl.textContent=`Level ${currentLevel} — Progress: 0%`;
+    document.body.style.background=getLevelTheme(levelId);
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+    document.querySelector('.tab[data-target="play"]').classList.add('active');
+    document.getElementById('play').classList.add('active');
+    if(!loopHandle) loopHandle=requestAnimationFrame(loop);
+  }
+
+  function exitGame(){
+    if(loopHandle){ cancelAnimationFrame(loopHandle); loopHandle=null; }
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+    document.querySelector('.tab[data-target="levels"]').classList.add('active');
+    document.getElementById('levels').classList.add('active');
+    document.body.style.background=getLevelTheme(0);
+  }
+  retryBtn.addEventListener('click',()=>{if(currentLevel) startGame(currentLevel);});
+  exitBtn.addEventListener('click',exitGame);
+
+  function jump(){
+    if(!cube.jumping&&!gameOver){cube.vy=JUMP; cube.jumping=true;}
+    else if(gameOver){startGame(currentLevel);}
+  }
+  document.addEventListener('keydown',e=>{if(e.code==='Space') jump();});
+  canvas.addEventListener('mousedown',jump);
+  canvas.addEventListener('touchstart',jump,{passive:true});
+
+  function update(){
+    if(gameOver) return;
+    // Physics
+    cube.y+=cube.vy; cube.vy+=GRAVITY;
+    if(cube.y>=GROUND){cube.y=GROUND; cube.vy=0; cube.jumping=false;}
+    // Trail particles
+    trail.push({x:cube.x+cube.size/2,y:cube.y-cube.size/2,alpha:1});
+    trail=trail.filter(p=>p.alpha>0); trail.forEach(p=>p.alpha-=0.05);
+    // Spawn obstacles
+    if(pattern.includes(frame)) obstacles.push({x:canvas.width+10,y:GROUND,w:26,h:40+Math.random()*20});
+    // Move obstacles
+    obstacles.forEach(o=>o.x-=scrollSpeed);
+    obstacles=obstacles.filter(o=>o.x+o.w>0);
+    // Collision
+    const cubeRect={x:cube.x,y:cube.y-cube.size,w:cube.size,h:cube.size};
+    for(const o of obstacles){
+      const obsRect={x:o.x,y:o.y-o.h,w:o.w,h:o.h};
+      if(cubeRect.x<obsRect.x+obsRect.w&&cubeRect.x+cubeRect.w>obsRect.x&&cubeRect.y<obsRect.y+obsRect.h&&cubeRect.y+cubeRect.h>obsRect.y){
+        gameOver=true; scoreEl.textContent='Game Over! Space/Click to Retry'; break;
+      }
+    }
+    // Progress + completion
+    const progress=Math.min(100,Math.round((frame/endFrame)*100));
+    if(frame>endFrame&&!gameOver){
+      gameOver=true; levelProgress[currentLevel]=100;
+      scoreEl.textContent='Level Complete!';
+      renderLevels(); updateOverall();
+    } else if(!gameOver){
+      levelProgress[currentLevel]=Math.max(levelProgress[currentLevel]||0,progress);
+      scoreEl.textContent=`Level ${currentLevel} — Progress: ${progress}%`;
+      renderLevels(); updateOverall();
+    }
+    frame++;
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // Parallax lines
+    if(effectsSelect.value!=='off'){
+      ctx.strokeStyle='rgba(0,180,255,0.15)';
+      const lines=effectsSelect.value==='high'?6:effectsSelect.value==='medium'?4:2;
+      for(let i=0;i<lines;i++){
+        ctx.beginPath();
+        const x=(frame*1.2+i*160)%canvas.width;
+        ctx.moveTo(x,40+i*40);
+        ctx.lineTo(x-80,40+i*40);
+        ctx.stroke();
+      }
+    }
+    // Trail
+    trail.forEach(p=>{
+      ctx.fillStyle=`rgba(0,200,255,${p.alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,8,0,Math.PI*2);
+      ctx.fill();
+    });
+    // Cube
+    ctx.fillStyle=equippedSkin.color;
+    ctx.shadowColor=equippedSkin.color; ctx.shadowBlur=20;
+    ctx.fillRect(cube.x,cube.y-cube.size,cube.size,cube.size);
+    ctx.shadowBlur=0;
+    // Obstacles (spikes)
+    ctx.fillStyle='#3399ff'; ctx.shadowColor='#3399ff'; ctx.shadowBlur=15;
+    obstacles.forEach(o=>{
+      ctx.beginPath();
+      ctx.moveTo(o.x,o.y);
+      ctx.lineTo(o.x+o.w/2,o.y-o.h);
+      ctx.lineTo(o.x+o.w,o.y);
+      ctx.closePath();
+      ctx.fill();
+    });
+    ctx.shadowBlur=0;
+  }
+
+  function loop(){update();draw();loopHandle=requestAnimationFrame(loop);}
+</script>
+</body>
+</html>
